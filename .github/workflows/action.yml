@@ -1,84 +1,27 @@
-name: Check for WhatsApp Group Changes
+name: Run WhatsApp Group Link Checker
 
 on:
   schedule:
-    - cron: "0 */6 * * *"
-  workflow_dispatch:
+    - cron: '0 */6 * * *'  # Run every 6 hours
+  workflow_dispatch:  # Allow manual triggering
 
 jobs:
-  check-for-changes:
+  check-whatsapp-links:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v2
+    - name: Checkout repository
+      uses: actions/checkout@v2
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v2
-        with:
-          node-version: '14'
+    - name: Set up Node.js
+      uses: actions/setup-node@v2
+      with:
+        node-version: '20'  # You can adjust this to your preferred Node.js version
 
-      - name: Install dependencies
-        run: npm install axios cheerio
+    - name: Install dependencies
+      run: |
+        npm install axios
+        npm install cheerio
 
-      - name: Run script
-        run: |
-          const axios = require('axios');
-          const cheerio = require('cheerio');
-
-          async function checkForChanges() {
-            const { data: scriptDataAsString } = await axios.get(
-              'https://api.thefuture.university/key-value/whatsapp_groups_automation_keys',
-            );
-            const scriptData = JSON.parse(scriptDataAsString.data.value);
-            const { URLS_TO_MONITOR, STATIC_FORM_API_KEYS } = scriptData;
-            const { data } = await axios.get(
-              'https://api.thefuture.university/key-value/whatsapp_groups_automation',
-            );
-            const previousValuesAsString = await data.data.value;
-            let previousValues = JSON.parse(previousValuesAsString);
-            let newData = [];
-
-            for (let url of URLS_TO_MONITOR) {
-              try {
-                const response = await axios.get(url);
-                const $ = cheerio.load(response.data);
-
-                $('a').each((index, element) => {
-                  const href = $(element).attr('href');
-                  if (href && href.includes('chat.whatsapp.com')) {
-                    if (!previousValues.find(a => a.whatsappGroup === href)) {
-                      previousValues = previousValues.filter(pV => pV.url !== url);
-                      previousValues.push({
-                        whatsappGroup: href,
-                        url: url,
-                      });
-                      newData.push({ url, whatsappGroup: href });
-                    }
-                  }
-                });
-              } catch (error) {
-                console.error(\`Error fetching \${url}:\`, error);
-              }
-            }
-
-            if (newData.length > 0) {
-              await axios.put('https://api.thefuture.university/key-value', {
-                key: 'whatsapp_groups_automation',
-                value: JSON.stringify(previousValues),
-              });
-
-              for (let STATIC_FORM_API_KEY of STATIC_FORM_API_KEYS) {
-                await axios.post('https://api.staticforms.xyz/submit', {
-                  accessKey: STATIC_FORM_API_KEY,
-                  subject: '⚠️ALERT! WHATSAPP GROUP LINKS HAVE CHANGED',
-                  ...newData.reduce((acc, d) => {
-                    acc[\`$${d.url}\`] = d.whatsappGroup;
-                    return acc;
-                  }, {}),
-                });
-              }
-            }
-          }
-
-          checkForChanges();
+    - name: Run script
+      run: node automate.js
