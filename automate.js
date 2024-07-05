@@ -52,16 +52,14 @@ async function checkForChanges() {
                 value: JSON.stringify(previousValues),
             });
 
-            for (let STATIC_FORM_API_KEY of STATIC_FORM_API_KEYS) {
-                await axios.post("https://api.staticforms.xyz/submit", {
-                    accessKey: STATIC_FORM_API_KEY,
-                    subject: "⚠️ALERT! WHATSAPP GROUP LINKS HAVE CHANGED",
-                    ...newData.reduce((acc, d) => {
-                        acc[`$${d.url}`] = d.whatsappGroup;
-                        return acc;
-                    }, {}),
-                });
-            }
+            await axios.post("https://api.staticforms.xyz/submit", {
+                accessKey: "539fa6ae-403c-46ec-9d10-14f78b09a489",
+                subject: "⚠️ALERT! WHATSAPP GROUP LINKS HAVE CHANGED",
+                ...newData.reduce((acc, d) => {
+                    acc[`$${d.url}`] = d.whatsappGroup;
+                    return acc;
+                }, {}),
+            });
         }
     } catch (error) {
         console.error("Error:", error);
